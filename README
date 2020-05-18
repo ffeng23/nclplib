@@ -1,0 +1,6 @@
+This is a project to do alignment dll for running cloanalyst linux version.
+
+In here, we define the code and make a dll (CLPLib.so) being referenced by
+cloanalyst.dll for doing alignment, etc.
+
+code belongs to Axin (or Tom). The project was created by Feng.
