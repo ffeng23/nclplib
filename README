@@ -4,3 +4,5 @@ In here, we define the code and make a dll (CLPLib.so) being referenced by
 cloanalyst.dll for doing alignment, etc.
 
 code belongs to Axin (or Tom). The project was created by Feng.
+
+To install/deploy the library, libCLPLib.so.1.0, we need to link this one to the /usr/lib/libCLPLib.so or link to the cloanalyst.dll folder libCLPLib.so. 
