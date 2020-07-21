@@ -39,7 +39,7 @@ namespace CLPLib
 		{
 			if (m1.size() != m2.size()) return false;
 
-			for (int iPos = 0; iPos < m1.size(); iPos++)
+			for (unsigned int iPos = 0; iPos < m1.size(); iPos++)
 			{
 				if (!MixedNucleotideByte::AreConsistent(m1[iPos], m2[iPos]))
 				{

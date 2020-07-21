@@ -5,4 +5,19 @@ cloanalyst.dll for doing alignment, etc.
 
 code belongs to Axin (or Tom). The project was created by Feng.
 
-To install/deploy the library, libCLPLib.so.1.0, we need to link this one to the /usr/lib/libCLPLib.so or link to the cloanalyst.dll folder libCLPLib.so. 
+To install/deploy the library, libCLPLib.so.1.0, we need to link this one to the /usr/lib/libCLPLib.so or link to the cloanalyst.dll folder libCLPLib.so. (NOTE: it is better to link to the libCLPLib.so in the same fold as the cloanalyst.dll. that one is more like a stable library and the one this current fold is sort of developing version.)
+
+
+=======updated 7/21/202 Feng
+no major addition. adding code to get familimar with how the alignment works
+
+In PairwiseAligner, FillMatrix is to do the alignment (two rounds, first round to get the score and longest part and then second round
+based on the aligned part and fill the matrix).
+One thing to note is that the alignment score is different from the score matrix based on the probility. 
+the alignment score takes into consideration of the score and the sequence length. It is normalized by the prior score (purely random
+between 4nts) and the cumulative prior score contains the length information. the final score is normalize and scaled to the total length
+of the sequence (Not just the part of the alignment)
+
+also fix the code to get rid of the warning of compiling
+1) int to unsigned
+2) the order the variables in the initialization list.

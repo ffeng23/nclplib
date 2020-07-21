@@ -494,7 +494,7 @@ namespace CLPLib
 
 			Polymer<std::vector<double>> pe(encoder, p.UID);
 			pe.Seq.reserve(p.Seq.size());			
-			for (int i = 0; i < p.Seq.size(); i++)
+			for (unsigned int i = 0; i < p.Seq.size(); i++)
 			{
 				pe.Seq[i] = Model->DestinationPMF(p.Seq[i]);
 			}
@@ -504,7 +504,7 @@ namespace CLPLib
 		static std::vector<std::vector<double>> Evolve(std::vector<std::vector<double>>& sequence)
 		{
 			std::vector<std::vector<double>> evolvedSeq(sequence.size(), std::vector<double>());
-			for (int i = 0; i < sequence.size(); i++)
+			for (unsigned int i = 0; i < sequence.size(); i++)
 			{
 				evolvedSeq[i] = Model->DestinationPMF(sequence[i]);
 			}

@@ -63,10 +63,10 @@ namespace CLPLib
 		vector<double> cumulativeScoreQuery;
 		vector<double> cumulativeScore1;
 
-		int dimQueryPhysical = -1;
-		int dimReferencePhysical = -1;
-		int dimQuery;
-		int dimReference;
+		unsigned int dimQueryPhysical = -1;
+		unsigned int dimReferencePhysical = -1;
+		unsigned dimQuery;
+		unsigned dimReference;
 
 
 		//static _Thread_local unique_ptr<double> CompScoreStorage;
@@ -101,7 +101,7 @@ namespace CLPLib
 				return;
 
 			cumulativeScoreQuery[0] = kernel->PriorQueryScore(0);
-			for (int i = 1; i < dimQuery; i++)
+			for (unsigned int i = 1; i < dimQuery; i++)
 			{
 				cumulativeScoreQuery[i] = cumulativeScoreQuery[i - 1] + kernel->PriorQueryScore(i);
 			}
@@ -117,7 +117,7 @@ namespace CLPLib
 				return;
 
 			cumulativeScoreQuery[0] = defaultValue;
-			for (int i = 1; i < dimQuery; i++)
+			for (unsigned  i = 1; i < dimQuery; i++)
 			{
 				cumulativeScoreQuery[i] = cumulativeScoreQuery[i - 1] + defaultValue;
 			}
@@ -142,7 +142,7 @@ namespace CLPLib
 				return;
 
 			cumulativeScore1[0] = value;
-			for (int i = 1; i < dimReference; i++)
+			for (unsigned  i = 1; i < dimReference; i++)
 			{
 				cumulativeScore1[i] = cumulativeScore1[i - 1] + value;
 			}
@@ -445,6 +445,9 @@ namespace CLPLib
 		//}
 
 		///supposed to be same as Tom's currurnet version. optimized
+		///this one is the one that only get the maximum score and the maximum score index (mx and my)
+		///but don't fill the score. 
+		///It is in the FillScoreMatrix_tom where we fill the score matrix.
 		double FillScoreMatrix_get_score()
 		{
 			auto query = kernel->GetQuery();
@@ -472,7 +475,7 @@ namespace CLPLib
 			std::vector<double, AlignmentAllocator<double, 32>> rowVec(dimReference * 2);
 			auto rowPtr = rowVec.data();
 
-			double DOUBLE_MIN = std::numeric_limits<double>::lowest();
+//			double DOUBLE_MIN = std::numeric_limits<double>::lowest();
 
 			//compute (0, 0)
 			scoreDiag = kernel->ComparisonScore(0, 0); //tmp
@@ -484,7 +487,7 @@ namespace CLPLib
 			double maxRowScore = scoreDiag - cumulativeScoreQuery[0];
 
 			// compute zeroth row
-			for (int i1 = 1; i1 < dimReference; i1++)
+			for (unsigned int i1 = 1; i1 < dimReference; i1++)
 			{
 				scoreDiag = cmpMatrix[querySeq[0]][refSeq[i1]];
 				if (maxRowScore < scoreDiag - cumulativeScoreQuery[0])
@@ -502,7 +505,7 @@ namespace CLPLib
 
 			auto col_cmpscores = mnmn_kernel->ComparisonScoreReference(0);
 			// compute remaining rows
-			for (int i0 = 1; i0 < dimQuery; i0++)
+			for (unsigned int i0 = 1; i0 < dimQuery; i0++)
 			{
 				auto& cmpVec = cmpMatrix[querySeq[i0]];
 				double cumScore = cumulativeScoreQuery[i0 - 1]; //wrong: should be i0-1
@@ -518,7 +521,7 @@ namespace CLPLib
 				double nextScoreDelete = left_max + OpenDeletionScore;
 
 				auto refseq_ptr = refSeq.data() + 1;
-				for (int i1 = 1; i1 < dimReference; ++i1)
+				for (unsigned int i1 = 1; i1 < dimReference; ++i1)
 				{
 					//layer 0
 					scoreInsert = *rowPtr;
@@ -731,36 +734,51 @@ namespace CLPLib
 			dimQuery = (int)querySeq.size();
 			dimReference = (int)refSeq.size();
 
-			if (dimQuery * dimReference * 3 > scoreMatrix.size())
+			if (dimQuery * dimReference * 3 > scoreMatrix.size())//Feng, this probably will never happen (???)
 			{
-				scoreMatrix.resize(dimQuery * dimReference * 3 * 2);
+				scoreMatrix.resize(dimQuery * dimReference * 3 * 2);  //Feng: why multiply by 2?? Because even though the  acutal size of the 
+								// is used (dimQueryPhysical and dimReferencePhysical), we could have larger size with gaps in the alignment. 
+								// in this case we haven't set it correctly, we double the size. 
 			}
 
-			double scoreDiag, scoreDelete, scoreInsert;
+			double scoreDiag, scoreDelete, scoreInsert;// these are the temporary space when we do the alignment.
 			double *matrixPtr0 = scoreMatrix.data();
 			MNMNAlignmentKernelAsymmetric *mnmn_kernel = dynamic_cast<MNMNAlignmentKernelAsymmetric *>(kernel.get());
+			//cmpMastrix is the comparator score matrix  for aligning  different nts.
 			auto& cmpMatrix = isPure ? mnmn_kernel->getPureComparisonMatrix() : mnmn_kernel->getComparisonMatrix();
 
 			// compute element [0,0]
+			//get the initial scores for the first element of the score table 
+			//0 is for deletion, 1 for match and 2 for insertion 
 			double DOUBLE_MIN = std::numeric_limits<double>::lowest();
 			scoreMatrix[0] = DOUBLE_MIN;
-			scoreMatrix[1] = kernel->ComparisonScore(0, 0);
+			scoreMatrix[1] = kernel->ComparisonScore(0, 0);//a match score between position query and positon refseq
 			scoreMatrix[2] = DOUBLE_MIN;
-
+			/*cout<<"for the first round: scoreMarix[0]:"<<scoreMatrix[0]<<"; scoreMarix[1]:"<<scoreMatrix[1]
+						<<"; scoreMarix[2]:"<<scoreMatrix[2]<<endl;
+			*/
+			//the finial maximum entry for tracing back.
 			int max_row = 0;
 			int max_col = 0;
-			double maxRowScore = scoreMatrix[1]- cumulativeScoreQuery[0];
+																		//  V   a match (mismatch) score 
+			double maxRowScore = scoreMatrix[1]- cumulativeScoreQuery[0];//maximum row score so far, why we need to do minus??
+						//a global alignment only column?????, but not for row??? (no penalty for starting in the middle of the refseq,
+						//but only for starting in the middle of the query ??? weird. need to check)
 
-			// compute zeroth row
-			int index = 3;
+						//for the starting row (refseq) and column (query), column (query ) get penalty for extending the
+							//sequence, but row(refseq) doesn't get penalty for extending the sequence (starting in the middle still 
+							//get zero score???? why)
+							
+			// compute zeroth row, row is refseq 
+			int index = 3; //skip the first one, since the 3 is for one entry 
 			int row_length = dimReference * 3;
 			auto& row_cmpscores = cmpMatrix[querySeq[0]];;
-			for (int i1 = 1; i1 < dimReference; i1++)
+			for (unsigned int i1 = 1; i1 < dimReference; i1++)
 			{
-				scoreMatrix[index++] = DOUBLE_MIN;
-				double tmp_score = row_cmpscores[refSeq[i1]];
-				scoreMatrix[index++] = tmp_score;
-				scoreMatrix[index++] = DOUBLE_MIN;
+				scoreMatrix[index++] = DOUBLE_MIN;//deletion 
+				double tmp_score = row_cmpscores[refSeq[i1]]; //match score for comparing with querySeq[0]
+				scoreMatrix[index++] = tmp_score; //match 
+				scoreMatrix[index++] = DOUBLE_MIN;//insertion 
 				if (maxRowScore < (tmp_score = tmp_score - cumulativeScoreQuery[0]))
 				{
 					maxRowScore = tmp_score;
@@ -769,10 +787,11 @@ namespace CLPLib
 				}
 			}
 
-			// compute zeroth column
+			// compute zeroth column, column is query, no penalty for starting in the middle of the refseq(?) 
+			// only cumulativeScoreQuery is used (?, don't understand Feng)
 			index = row_length;
 			auto col_cmpscores = mnmn_kernel->ComparisonScoreReference(0);
-			for (int i0 = 1; i0 < dimQuery; i0++, index += row_length)
+			for (unsigned int i0 = 1; i0 < dimQuery; i0++, index += row_length)
 			{
 				scoreMatrix[index] = DOUBLE_MIN;
 				scoreMatrix[index + 1] = cumulativeScoreQuery[i0 - 1] + col_cmpscores[i0];
@@ -786,37 +805,49 @@ namespace CLPLib
 
 			//std::cerr << "consts: " << OpenInsertionScore << " " << ContinueInsertionScore << " " << OpenDeletionScore << " " << ContinueDeletionScore << std::endl;
 
+			//now start doing section row and updating the pointers first , the matrix is the score matrix
+			//we need to fill the score matrix
 			double *lastRowPtr = matrixPtr0;
 			double *rowPtr = lastRowPtr + row_length;
 
-			auto querySeqPtr = querySeq.data() + 1;
+			auto querySeqPtr = querySeq.data() + 1;//doing the second nt in the query
 			// compute remaining rows
 
-			int i0max = mx == -1 ? dimQuery : mx + 1;
+			unsigned i0max = mx == -1 ? dimQuery : mx + 1;//set the max query length,
+											//in this case refSeq length is fixed to reference length.
 			//maxy cannot be used now, because pointers related to row length won't work in this version.
 			//int i1max = my == -1 ? dimReference : my + 1;
 
 			//for (int i0 = 1; i0 < dimQuery; i0++)
-			for (int i0 = 1; i0 < i0max; i0++)
+			/*cout<<"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"<<endl;
+			cout<<"* inside debugging native aligner fillmatrix _tome*"<<endl;
+			cout<<"*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"<<endl;
+			cout<<"\t\tinfo : iomax--- "<<i0max<<"; dimQuery:"<<dimQuery<<"; dimReference:"<<dimReference<<endl;
+			*/
+			for (unsigned int i0 = 1; i0 < i0max; i0++)
 			{
-				auto& cmpVec = cmpMatrix[*querySeqPtr++];
-				double cumScore = cumulativeScoreQuery[i0 - 1]; //wrong: should be i0-1
+				//cout<<"\ti0:"<<i0<<endl;
+				auto& cmpVec = cmpMatrix[*querySeqPtr++];//this comparsion score for this round of sequence nt
+				double cumScore = cumulativeScoreQuery[i0 - 1]; //wrong: should be i0-1, cumulative score for the query of previous one
 
-				double left_max = rowPtr[1];
-				scoreDelete = left_max + OpenDeletionScore;
-				rowPtr += 3;
+				//starting from the beinging of the reference seq to calculate the gap/deletion.
+				double left_max = rowPtr[1]; //this the match score since the index of 1 for the first element of the row.
+				scoreDelete = left_max + OpenDeletionScore;//starts at match and then open an deletion
+				rowPtr += 3;//increament by 3 to the first score (insertion score ) of the next entry
 
-				lastRowPtr++;
-				double last_max = *lastRowPtr++; 
-				lastRowPtr++; //pointing to first element of next slot. 
+				lastRowPtr++;//skip the deletion score of the last row (above this one for one row)
+				double last_max = *lastRowPtr++; //now this is the match 
+				lastRowPtr++; //pointing to first element of next slot. by skipping the insert.
 
-				//to find maximum...
+				//to find maximum..., set the max to current deletion for now for now
 				double max_score = left_max; //last_max;
 				int max_j = 0;
 
 				auto refseq_ptr = refSeq.data() + 1;
 				//for (int i1 = 1; i1 < dimReference; ++i1)
-				for (int i1 = 1; i1 < dimReference; ++i1)
+				//for each row (whole refSeq), we get one one maxScore, which can only be landed on a match (no indel)
+				//and then compare the maxScore with the ro at 
+				for (unsigned int i1 = 1; i1 < dimReference; ++i1)
 				{
 					//layer 1 - diagnal
 					scoreDiag = FastMax(last_max, cumScore) + cmpVec[*refseq_ptr++];
@@ -826,9 +857,9 @@ namespace CLPLib
 						max_j = i1;
 					}
 
-					double a = *lastRowPtr++; //layer 0 score
-					double b = *lastRowPtr++; //layer 1 score
-					double c = *lastRowPtr++; //layer 2 score
+					double a = *lastRowPtr++; //layer 0 score, insertion 
+					double b = *lastRowPtr++; //layer 1 score, match
+					double c = *lastRowPtr++; //layer 2 score, deletion
 					scoreInsert = FastMax(a + ContinueInsertionScore, b + OpenInsertionScore);
 					last_max = FastMax(a, FastMax(b, c));
 
@@ -838,19 +869,24 @@ namespace CLPLib
 					//this compute "next" scoreDelete
 					scoreDelete = FastMax(scoreDiag + OpenDeletionScore, scoreDelete + ContinueDeletionScore);
 				}
-
+				
 				if (max_score - cumulativeScoreQuery[i0] > maxRowScore)
 				{
-					maxRowScore = max_score - cumulativeScoreQuery[i0];
+					maxRowScore = max_score - cumulativeScoreQuery[i0];//why we want to subtrace the cumulativeScoreQuery ???? Feng
 					max_row = i0;
 					max_col = max_j;
 				}
+				/*cout<<"\t\tmaxscore:"<<max_score<<":: maxRowScore:"<<maxRowScore<<"::max_col:"<<max_col
+							<<":: cumulativeScoreQuery["<<i0<<"] : "<<cumulativeScoreQuery[i0]<<endl;*/
 			}
-
+			
 			AlignmentScore = maxRowScore + cumulativeScoreQuery[dimQuery - 1];
 			this->MaxRowIndex = max_row;
 			this->MaxColIndex = max_col;
-
+/*			cout<<"*****END SUMMARY:AligmentScore:::"<<AlignmentScore
+						<<"cumulativeScoreQuery["<<dimQuery-1<<"]:"<<cumulativeScoreQuery[dimQuery-1]
+						<<"maxRowScore:"<<maxRowScore<<endl;
+*/
 			return AlignmentScore;
 		}
 
@@ -1233,7 +1269,7 @@ namespace CLPLib
 			//std::cerr << "in FillScoreMatrix.\n";
 			dimQuery = (int)kernel->GetQuery()->Seq.size() + 1;
 			dimReference = (int)kernel->GetReference()->Seq.size() + 1;
-			int dim2 = dimReference;
+			//int dim2 = dimReference;
 
 			//while (DEBUG_CODE == 1)
 			//{
@@ -1253,16 +1289,16 @@ namespace CLPLib
 			//std::cerr << "vector size: " << scoreMatrix.size() << std::endl;
 			//std::cerr << "need size: " << (dimQuery * dimReference * 3) << std::endl;
 
-			int dim0Minus1 = dimQuery - 1;
-			int dim1Minus1 = dimReference - 1;
-			int i0 = 0;
-			int i1 = 0;
+			//int dim0Minus1 = dimQuery - 1;
+			//int dim1Minus1 = dimReference - 1;
+			unsigned  i0 = 0;
+			unsigned i1 = 0;
 
 			double scoreDiag, scoreDiagMax;
 			double scoreDelete, scoreDeleteMax;
 			double scoreInsert, scoreInsertMax;
-			double jumpScore;
-			bool bothFivePrimeEndsFree = qFivePrimeEndFree && rFivePrimeEndFree;
+			//double jumpScore;
+			//bool bothFivePrimeEndsFree = qFivePrimeEndFree && rFivePrimeEndFree;
 
 			MNMNAlignmentKernelAsymmetric *mnmn_kernel = dynamic_cast<MNMNAlignmentKernelAsymmetric *>(kernel.get());
 			mnmn_kernel->computeComparisonScoreOfReference();
@@ -1279,7 +1315,7 @@ namespace CLPLib
 
 			// compute zeroth row
 			int index = 3;
-			auto& cmpscore = mnmn_kernel->ComparisonScoreQuery(0);
+			//auto& cmpscore = mnmn_kernel->ComparisonScoreQuery(0);
 			for (i1 = 1; i1 < dimReference; ++i1)
 			{
 				scoreMatrix[index] = DOUBLE_MIN;
@@ -1308,8 +1344,8 @@ namespace CLPLib
 			double OpenDeletionScore = kernel->OpenDeletionScore(0, 0);
 			double ContinueDeletionScore = kernel->ContinueDeletionScore(0, 0);
 
-			double insertionScoreDiff = ContinueInsertionScore - OpenInsertionScore;
-			double deletionScoreDiff = ContinueDeletionScore - OpenDeletionScore;
+			//double insertionScoreDiff = ContinueInsertionScore - OpenInsertionScore;
+			//double deletionScoreDiff = ContinueDeletionScore - OpenDeletionScore;
 
 			int max_row = -1;
 			int max_col = -1;
@@ -1780,14 +1816,14 @@ namespace CLPLib
 			}
 			int dimReference = (int)kernel->GetReference()->Seq.size();
 			int indexLength = 0;
-			bool foundMatch = false;
+			//bool foundMatch = false;
 			int nextLayer;
 			bool finishing0 = false;
 			bool finishing1 = false;
 			int dimRefer3 = dimReference * 3;
 			double *matrixPtr = scoreMatrix.data();
 			double *dptr;
-			double cumu_score;
+			//double cumu_score;
 			int maxval_index;
 			while (currentLayer > -1)
 			{
@@ -1922,7 +1958,7 @@ namespace CLPLib
 
 			int dimReference = (int)kernel->GetReference()->Seq.size() + 1;
 			int indexLength = 0;
-			bool foundMatch = false;
+			//bool foundMatch = false;
 			int nextLayer;
 			bool finishing0 = false;
 			bool finishing1 = false;
@@ -2227,7 +2263,7 @@ namespace CLPLib
 
 			//testing uniform comparison scores.
 			double OpenGapScoreVal = kernel->OpenInsertionScore(0, 0);
-			double ContinueGapScoreVal = kernel->ContinueGapScore(0, 0);
+//			double ContinueGapScoreVal = kernel->ContinueGapScore(0, 0);
 			double ComparisionScoreMin = OpenGapScoreVal;
 			// compute entries up to last row and column
 			for (i0 = 1; i0 < dim[0]; i0++)
@@ -2286,8 +2322,8 @@ namespace CLPLib
 				scoreInsertMax = std::numeric_limits<double>::lowest();;
 				for (int iLayer = 0; iLayer < 2; iLayer++)
 				{
-					double a = scoreMatrix[MATRIX_INDEX(i0 - 1, i1, iLayer)];
-					double b = (iLayer == 0 ? kernel->ContinueGapScore(i0 - 1, i1 - 1) : kernel->OpenInsertionScore(i0 - 1, i1 - 1));
+					//double a = scoreMatrix[MATRIX_INDEX(i0 - 1, i1, iLayer)];
+					//double b = (iLayer == 0 ? kernel->ContinueGapScore(i0 - 1, i1 - 1) : kernel->OpenInsertionScore(i0 - 1, i1 - 1));
 					scoreInsert = scoreMatrix[MATRIX_INDEX(i0 - 1, i1, iLayer)] + (iLayer == 0 ? kernel->ContinueGapScore(i0 - 1, i1 - 1) : kernel->OpenInsertionScore(i0 - 1, i1 - 1));
 					if (scoreInsert > scoreInsertMax)
 					{
@@ -2534,7 +2570,7 @@ namespace CLPLib
 			int indexQ = -1;
 			int indexR = -1;
 			int gap_count = 0;
-			for (int i = 0; i < pair.Index.size(); i++)
+			for (unsigned int i = 0; i < pair.Index.size(); i++)
 			{
 				auto& indexi = pair.Index[i];
 

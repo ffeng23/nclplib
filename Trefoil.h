@@ -362,7 +362,7 @@ namespace CLPLib
 
 		void TransferNucleotides(NucleotideEvolutionModel& model, int cdr3Start = 0)
 		{
-			double sum = 0;
+			//double sum = 0;
 			for (int k = cdr3Start; k < (int)index.size(); k++)
 			{
 				if (index[k][3] > -1 && index[k][2] > -1)

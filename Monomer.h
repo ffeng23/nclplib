@@ -117,7 +117,7 @@ namespace CLPLib
 
 
 	public:
-		int dim = (int)SymbolSets::AminoAcids.size();
+		unsigned int dim = SymbolSets::AminoAcids.size();
 
 		//c++ does not have static constructor, need to constrcut an instance
 		//to initialize the static member later.
@@ -170,7 +170,7 @@ namespace CLPLib
 			//we cannot check length here
 			//if (a.Length != Dim)return false;
 			double sum = 0;
-			for (int i = 0; i < dim; i++)
+			for (unsigned int i = 0; i < dim; i++)
 			{
 				if (a[i] < 0) return false;
 				sum += a[i];
@@ -201,7 +201,7 @@ namespace CLPLib
 				throw std::logic_error("The length of the argument is incorrect.");
 			double maxval = a[0];
 			int maxi = 0;
-			for (int i = 1; i < dim; i++)
+			for (unsigned int i = 1; i < dim; i++)
 			{
 				if (a[i] > maxval)
 				{
@@ -657,7 +657,7 @@ namespace CLPLib
 	class NucleotidePMF : public NucleotideEncoding < vector<double> >
 	{
 	public:
-		static const int Dim = 5;
+		static const unsigned int Dim = 5;
 		static MixedNucleotideByte mnbEncoding;
 		/// <summary>
 		/// Constructor. Doesn't do anything.
@@ -676,7 +676,7 @@ namespace CLPLib
 			if (n.size() != Dim)
 				return false;
 			double sum = 0;
-			for (int i = 0; i < Dim; i++)
+			for (unsigned int i = 0; i < Dim; i++)
 			{
 				if (n[i] < 0)
 					return false;

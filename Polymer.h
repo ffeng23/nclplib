@@ -41,7 +41,7 @@ namespace CLPLib
 		Complementer<T> complementer;
 
 		Polymer(shared_ptr<MonomerEncoding<T>> encoding, string name = "", vector<T> sequence = vector<T>(), vector<byte> qual = vector<byte>())
-			:Name(name), Seq(sequence), Qual(qual), Id(0)
+			: Seq(sequence), Qual(qual), Name(name),Id(0)
 		{
 			//complementer.SetEncoding(encoding);
 			if (Qual.size() > 0 && Qual.size() != Seq.size())
@@ -59,7 +59,7 @@ namespace CLPLib
 
 
 		Polymer(shared_ptr<MonomerEncoding<T>> encoding, string& name, string& sequence, vector<byte> qual = vector<byte>())
-			:Name(name), Qual(qual), Id(0)
+			:Qual(qual), Name(name), Id(0)
 		{
 
 			//charSeq = sequence;

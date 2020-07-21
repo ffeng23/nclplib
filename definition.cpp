@@ -270,7 +270,7 @@ int AlignToReference(void *aligner_ptr, int segmentType, double threshold, int *
 		{
 			std::cerr << "debug error in align to reference\n";
 			auto tScore = aligner->FillScoreMatrix_get_score();
-			std::cerr << "check point.";
+			std::cerr << "check point."<<tScore;
 		}
 
 		if (alignScore < maxScore - threshold)continue;

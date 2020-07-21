@@ -326,15 +326,15 @@ namespace CLPLib
 			}
 
 			PolymerPair<byte, byte> pair(tree.Contents, tree.Parent.lock()->Contents);
-			if ((int)tree.Contents->Seq.size() != tree.Parent.lock()->Contents->Seq.size())
+			if (tree.Contents->Seq.size() != tree.Parent.lock()->Contents->Seq.size())
 			{
 				throw std::runtime_error("Sequences must be the same length");
 			}
-			int length = (int)tree.Contents->Seq.size();
+			unsigned int length = tree.Contents->Seq.size();
 			pair.Index.resize(length);
-			for (int i = 0; i < length; i++)
+			for (unsigned int i = 0; i < length; i++)
 			{
-				pair.Index[i] = std::vector<int>{ i, i };
+				pair.Index[i] = std::vector<int>{ (int)i, (int)i };
 			}
 
 			MutationList muList = GetMutations(pair);
@@ -381,9 +381,10 @@ namespace CLPLib
 			{
 				if (m.Type == MutationType::Substitution)
 				{
-					auto detail = Utils::splitString(m.Detail, '\t');
-					char alpha = detail[0][0];
-					char beta = detail[1][0];
+					cerr<<"NOT implemented"<<endl;
+					//auto detail = Utils::splitString(m.Detail, '\t');
+					//char alpha = detail[0][0];
+					//char beta = detail[1][0];
 				}
 			}
 		}

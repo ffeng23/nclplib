@@ -280,7 +280,7 @@ namespace CLPLib
 				{
 					vector<double> pQ = TypeConverter::ToPMF(bQ);
 					double x = 0;
-					for (int r = 0; r < 4; r++) // pure nucleotide states in reference sequence
+					for (unsigned int r = 0; r < 4; r++) // pure nucleotide states in reference sequence
 					{
 						for (int q = 0; q < 4; q++) // pure nuclelotide states in query sequence
 						{
@@ -295,10 +295,10 @@ namespace CLPLib
 			pureComparisonScore.resize(PureNucleotideInt::symbols.size(), 
 				vector<double, AlignmentAllocator<double, 64>>(PureNucleotideInt::symbols.size(), 0));
 			std::vector<int> tmap{ 1, 2, 4, 8, 15 }; //from pure to mixed map
-			for (int i = 0; i < PureNucleotideInt::symbols.size(); i++)
+			for (unsigned int i = 0; i < PureNucleotideInt::symbols.size(); i++)
 			{
 				int mi = tmap[i];
-				for (int j = 0; j < PureNucleotideInt::symbols.size(); j++)
+				for (unsigned int j = 0; j < PureNucleotideInt::symbols.size(); j++)
 				{
 					int mj = tmap[j];
 					pureComparisonScore[i][j] = comparisonScore[mi][mj];
@@ -313,7 +313,7 @@ namespace CLPLib
 			comparisonScoreArray.resize(MixedNucleotideByte::NSymbols);
 			if (comparisonScoreArray[0].size() < reference->Seq.size())
 			{
-				for (int i = 0; i < comparisonScoreArray.size(); i++)
+				for (unsigned int i = 0; i < comparisonScoreArray.size(); i++)
 				{
 					comparisonScoreArray[i].resize(reference->Seq.size());
 				}
@@ -324,7 +324,7 @@ namespace CLPLib
 				auto& sai = comparisonScoreArray[i];
 				auto& seq = reference->Seq;
 				auto& csi = comparisonScore[i];
-				for (int j = 0; j < seq.size(); j++)
+				for (unsigned int j = 0; j < seq.size(); j++)
 				{
 					sai[j] = csi[seq[j]];
 				}
@@ -356,7 +356,7 @@ namespace CLPLib
 		{
 			std::vector<double> scorevec(query->Seq.size());
 			auto r = reference->Seq[posInReference];
-			for (int i = 0; i < query->Seq.size(); i++)
+			for (unsigned int i = 0; i < query->Seq.size(); i++)
 			{
 				auto q = query->Seq[i];
 				scorevec[i] = comparisonScore[q][r];
@@ -554,10 +554,11 @@ namespace CLPLib
 		vector<vector<double>> loglikelihood;
 		double distance;
 
-		double set_Distance(double value)
+		void set_Distance(double value)
 		{
 			distance = value;
 			mutationCost = log(1 - exp(-distance));
+			
 		}
 
 		double mutationCost;
@@ -569,19 +570,20 @@ namespace CLPLib
 		}
 
 		LikelihoodByteAlignmentKernel(double distance)
-			: distance(distance), mutationCost(log(1 - exp(-distance))), gapScores(new GapScores()), pair(new PolymerPair<vector<double>, byte>())
+			:   gapScores(new GapScores()), pair(new PolymerPair<vector<double>, byte>()),distance(distance),mutationCost(log(1 - exp(-distance)))
 		{
 		}
 
 		LikelihoodByteAlignmentKernel(shared_ptr<Polymer<vector<double>>> query, shared_ptr<Polymer<byte>> reference, double distance)
-			:query(query), reference(reference), distance(distance), mutationCost(log(1 - exp(-distance))),
-			gapScores(new GapScores())
+			:query(query), reference(reference),
+			gapScores(new GapScores()), distance(distance), mutationCost(log(1 - exp(-distance)))
 		{
 			makeLogLikelihood();
 		}
 
 		LikelihoodByteAlignmentKernel(shared_ptr<PolymerPair<vector<double>, byte>> pair, double distance)
-			:query(pair->Polymer0), reference(pair->Polymer1), distance(distance), mutationCost(log(1 - exp(-distance))), gapScores(new GapScores())
+			:query(pair->Polymer0), reference(pair->Polymer1), gapScores(new GapScores()), distance(distance), 
+			mutationCost(log(1 - exp(-distance)))
 		{
 			makeLogLikelihood();
 		}
@@ -833,7 +835,7 @@ namespace CLPLib
 		void computeIndelBaseProbabilities(int sequenceNumber)
 		{
 			indelBaseProbability[sequenceNumber].resize(sequences[sequenceNumber]->Seq.size());
-			for (int i = 0; i < sequences[sequenceNumber]->Seq.size(); i++)
+			for (unsigned int i = 0; i < sequences[sequenceNumber]->Seq.size(); i++)
 			{
 				indelBaseProbability[sequenceNumber][i] = 1 - NucleotidePMF::IDFlux((sequences[sequenceNumber]->Seq)[i], (sequences[sequenceNumber]->Seq)[i]);
 			}
@@ -869,14 +871,14 @@ namespace CLPLib
 			return OpenGapScoreVal;
 		}
 
-		double OpenDeletionScore(int position0, int position1) override
+		double OpenDeletionScore(int position0,int position1) override
 		{
 			return OpenGapScoreVal;
 		}
 
 
 
-		double OpenGapScoreBounded(int position0, int position1)
+		double OpenGapScoreBounded(unsigned int position0, unsigned int position1)
 		{
 			return log(indelBaseProbability[0][position0] + indelBaseProbability[1][position1]) + gapScores->OpenInsertionScore + PureNucleotideInt::LogPrior;
 		}
@@ -888,7 +890,7 @@ namespace CLPLib
 		/// <param name="position0"></param>
 		/// <param name="position1"></param>
 		/// <returns></returns>
-		double OpenInsertionScoreBounded(int position0, int position1)
+		double OpenInsertionScoreBounded(unsigned int position0, unsigned int position1)
 		{
 			if (position0 + 1 < indelBaseProbability[0].size())
 			{
@@ -898,14 +900,14 @@ namespace CLPLib
 			else return OpenGapScoreBounded(position0, position1);
 		}
 
-		double OpenDeletionScoreBounded(int position0, int position1)
+		double OpenDeletionScoreBounded(unsigned int position0, unsigned int position1)
 		{
 			if (position1 + 1 < indelBaseProbability[1].size())
 			{
-				double a = indelBaseProbability[0][position0];
-				double b = indelBaseProbability[1][position1];
-				double c = indelBaseProbability[1][position1 + 1];
-				double d = a + (b + c) / 2;
+				//double a = indelBaseProbability[0][position0];
+				//double b = indelBaseProbability[1][position1];
+				//double c = indelBaseProbability[1][position1 + 1];
+				//double d = a + (b + c) / 2;
 				return log(indelBaseProbability[0][position0] + (indelBaseProbability[1][position1] + indelBaseProbability[1][position1 + 1]) / 2) +
 					gapScores->OpenDeletionScore + PureNucleotideInt::LogPrior;
 			}

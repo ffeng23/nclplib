@@ -40,7 +40,8 @@ namespace CLPLib
 		/// </summary>
 		int get_MaxLength()
 		{
-			getMaxLength(*this);
+			return getMaxLength(*this);
+			
 		}
 
 	protected:
