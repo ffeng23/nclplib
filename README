@@ -8,7 +8,7 @@ code belongs to Axin (or Tom). The project was created by Feng.
 To install/deploy the library, libCLPLib.so.1.0, we need to link this one to the /usr/lib/libCLPLib.so or link to the cloanalyst.dll folder libCLPLib.so. (NOTE: it is better to link to the libCLPLib.so in the same fold as the cloanalyst.dll. that one is more like a stable library and the one this current fold is sort of developing version.)
 
 
-=======updated 7/21/202 Feng
+=======updated 7/21/2020 Feng
 no major addition. adding code to get familimar with how the alignment works
 
 In PairwiseAligner, FillMatrix is to do the alignment (two rounds, first round to get the score and longest part and then second round
@@ -21,3 +21,11 @@ of the sequence (Not just the part of the alignment)
 also fix the code to get rid of the warning of compiling
 1) int to unsigned
 2) the order the variables in the initialization list.
+
+#--------updated 8/24/2020 Feng
+make this working on theano, which has way too old system and programs (gcc,
+libraries, etc). We add parts to load the libraries and c++ compilers. see
+notes on P52t for the notes (cpp_project_notes.txt in Feng/ folder). Need to
+modify the makefile to do compiling, change g++/conda compiler and loadFlag
+and activate conda environment.
+be careful here 
