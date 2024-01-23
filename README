@@ -7,6 +7,8 @@ code belongs to Axin (or Tom). The project was created by Feng.
 
 To install/deploy the library, libCLPLib.so.1.0, we need to link this one to the /usr/lib/libCLPLib.so or link to the cloanalyst.dll folder libCLPLib.so. (NOTE: it is better to link to the libCLPLib.so in the same fold as the cloanalyst.dll. that one is more like a stable library and the one this current fold is sort of developing version.)
 
+****(note: we need to link in the /usr/lib/ with the name libCLPLib.so, the other name libCLPLib.so.1.0 or with other version #s. libCLPLib.so is the link to the latest one or specific one. This is true also if we want to include the library in the same fold as the project folder. We want to use libCLPLib.so to link to the specific one so we can have many different version side by side in the same folder. The bottem line is that the dllimport will look for the lib with name libCLPLib.so instead of any other names).****
+
 
 =======updated 7/21/2020 Feng
 no major addition. adding code to get familimar with how the alignment works

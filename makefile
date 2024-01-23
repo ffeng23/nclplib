@@ -6,11 +6,11 @@
 #for conda evironment (doing nothing, since codan will set up the correct g++ compiler using GXX
 #
 #for using systemwise g++ <----------
-##GXX=g++
+GXX=g++
 
 #this is try to use conda env variblbe. <------ uncomment on P52s
-LD=${LDFLAGS} -L/home/ffeng/miniconda3/lib/
-
+#LD=${LDFLAGS} -L/home/ffeng/miniconda3/lib/
+LD=
 LIBCLP= libCLPLib.so.1.0
 
 all: $(LIBCLP) 
